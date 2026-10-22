@@ -4,3 +4,4 @@ python-dotenv
 requests
 pyTelegramBotAPI
 openai
+psycopg2-binary>=2.9

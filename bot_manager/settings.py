@@ -77,7 +77,14 @@ WSGI_APPLICATION = 'bot_manager.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
+    'default': os.getenv('DB_ENGINE') == 'django.db.backends.postgresql' and {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
+    } or {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
@@ -128,3 +135,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 load_dotenv(find_dotenv())
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'

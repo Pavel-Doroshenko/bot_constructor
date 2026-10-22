@@ -94,3 +94,5 @@ urllib3==2.7.0
     # via requests
 yarl==1.24.5
     # via aiohttp
+
+psycopg2-binary>=2.9
