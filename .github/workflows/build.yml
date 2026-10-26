@@ -6,6 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  # GitHub автоматически переведет имя репозитория в нижний регистр при сборке
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
@@ -66,25 +67,26 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # Передаем переменные, которые мы подготовили в блоке env ниже
           envs: OPENAI_API_KEY,GHCR_PAT,GH_ACTOR,GH_REPO_OWNER
           script: |
             mkdir -p ~/app && cd ~/app
             
-            # Авторизуем Docker
+            # Авторизуем Docker на сервере с использованием токена PAT
             echo "$GHCR_PAT" | docker login ghcr.io -u $GH_ACTOR --password-stdin
             
-            # Автоматически создаем правильный .env на сервере
+            # Создаем/перезаписываем файл .env
             echo "OPENAI_API_KEY=$OPENAI_API_KEY" > .env
             echo "GITHUB_REPOSITORY_OWNER=$GH_REPO_OWNER" >> .env
             
-            # Обновляем контейнеры
+            # Принудительно скачиваем свежий образ и запускаем контейнеры
             docker compose pull
             docker compose up -d --remove-orphans
             
-            # Очищаем место
+            # Удаляем старые ненужные слои образов, чтобы не забивать диск
             docker image prune -f
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
-          GH_ACTOR: ${{ github.actor }}
-          GH_REPO_OWNER: ${{ github.repository_owner }}
+          GH_ACTOR: ${{ lowercase(github.actor) }}
+          GH_REPO_OWNER: ${{ lowercase(github.repository_owner) }}
