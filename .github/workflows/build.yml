@@ -6,7 +6,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # GitHub автоматически переведет имя репозитория в нижний регистр при сборке
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
@@ -67,26 +66,29 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # Передаем переменные, которые мы подготовили в блоке env ниже
-          envs: OPENAI_API_KEY,GHCR_PAT,GH_ACTOR,GH_REPO_OWNER
+          envs: OPENAI_API_KEY,GHCR_PAT,RAW_ACTOR,RAW_REPO_OWNER
           script: |
             mkdir -p ~/app && cd ~/app
             
-            # Авторизуем Docker на сервере с использованием токена PAT
-            echo "$GHCR_PAT" | docker login ghcr.io -u $GH_ACTOR --password-stdin
+            # Переводим логин в нижний регистр средствами Bash самого сервера VPS
+            GH_ACTOR=$(echo "$RAW_ACTOR" | tr '[:upper:]' '[:lower:]')
+            GH_REPO_OWNER=$(echo "$RAW_REPO_OWNER" | tr '[:upper:]' '[:lower:]')
             
-            # Создаем/перезаписываем файл .env
+            # Авторизуем Docker на сервере
+            echo "$GHCR_PAT" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
+            
+            # Создаем файл .env с правильным регистром переменных
             echo "OPENAI_API_KEY=$OPENAI_API_KEY" > .env
             echo "GITHUB_REPOSITORY_OWNER=$GH_REPO_OWNER" >> .env
             
-            # Принудительно скачиваем свежий образ и запускаем контейнеры
+            # Скачиваем свежий образ и перезапускаем
             docker compose pull
             docker compose up -d --remove-orphans
             
-            # Удаляем старые ненужные слои образов, чтобы не забивать диск
+            # Чистим систему от старых слоев
             docker image prune -f
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
-          GH_ACTOR: ${{ lowercase(github.actor) }}
-          GH_REPO_OWNER: ${{ lowercase(github.repository_owner) }}
+          RAW_ACTOR: ${{ github.actor }}
+          RAW_REPO_OWNER: ${{ github.repository_owner }}
