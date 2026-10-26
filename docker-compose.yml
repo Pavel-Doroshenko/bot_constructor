@@ -12,7 +12,7 @@ services:
     restart: always
 
   web:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/bot_app:latest
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/${IMAGE_NAME}:latest
     build: .
     command: >
       sh -c "python manage.py migrate &&

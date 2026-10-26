@@ -80,6 +80,7 @@ jobs:
             # Создаем файл .env с правильным регистром переменных
             echo "OPENAI_API_KEY=$OPENAI_API_KEY" > .env
             echo "GITHUB_REPOSITORY_OWNER=$GH_REPO_OWNER" >> .env
+            echo "bot_constructor" >> .env
             
             # Скачиваем свежий образ и перезапускаем
             docker compose pull
