@@ -66,13 +66,14 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: OPENAI_API_KEY,GHCR_PAT,RAW_ACTOR,RAW_REPO_OWNER
+          envs: OPENAI_API_KEY,GHCR_PAT,RAW_ACTOR,RAW_REPO_OWNER,RAW_IMAGE_NAME
           script: |
             mkdir -p ~/app && cd ~/app
             
             # Переводим логин в нижний регистр средствами Bash самого сервера VPS
             GH_ACTOR=$(echo "$RAW_ACTOR" | tr '[:upper:]' '[:lower:]')
             GH_REPO_OWNER=$(echo "$RAW_REPO_OWNER" | tr '[:upper:]' '[:lower:]')
+            IMAGE_NAME=$(echo "$RAW_IMAGE_NAME" | cut -d'/' -f2 | tr '[:upper:]' '[:lower:]')
             
             # Авторизуем Docker на сервере
             echo "$GHCR_PAT" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
@@ -80,7 +81,7 @@ jobs:
             # Создаем файл .env с правильным регистром переменных
             echo "OPENAI_API_KEY=$OPENAI_API_KEY" > .env
             echo "GITHUB_REPOSITORY_OWNER=$GH_REPO_OWNER" >> .env
-            echo "bot_constructor" >> .env
+            echo "IMAGE_NAME=$IMAGE_NAME" >> .env
             
             # Скачиваем свежий образ и перезапускаем
             docker compose pull
@@ -93,4 +94,5 @@ jobs:
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
           RAW_ACTOR: ${{ github.actor }}
           RAW_REPO_OWNER: ${{ github.repository_owner }}
+          RAW_IMAGE_NAME: ${{ github.repository }}
 
