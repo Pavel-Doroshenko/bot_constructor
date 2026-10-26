@@ -47,7 +47,7 @@ jobs:
     needs: build-and-push
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (to get docker-compose and nginx configs)
         uses: actions/checkout@v4
 
       - name: Copy docker-compose and nginx conf to VPS
@@ -58,7 +58,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "docker-compose.yml,nginx/nginx.conf"
           target: "~/app"
-          rm: false # Не удалять другие файлы в папке, если они там есть
+          rm: false
 
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -66,29 +66,25 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # Безопасно передаем переменные окружения внутрь скрипта
           envs: OPENAI_API_KEY,GHCR_PAT,GH_ACTOR,GH_REPO_OWNER
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GHCR_PAT: ${{ secrets.GHCR_PAT }} # Новый секрет (PAT токен) вместо GITHUB_TOKEN
-          GH_ACTOR: ${{ github.actor }}
-          GH_REPO_OWNER: ${{ github.repository_owner }}
-          
           script: |
-            # Создаем папку, если её нет, и переходим
             mkdir -p ~/app && cd ~/app
             
-            # Авторизуем Docker через безопасную переменную PAT
+            # Авторизуем Docker
             echo "$GHCR_PAT" | docker login ghcr.io -u $GH_ACTOR --password-stdin
             
-            # Безопасно формируем .env (переменные берутся из окружения системы, а не из текста команды)
+            # Автоматически создаем правильный .env на сервере
             echo "OPENAI_API_KEY=$OPENAI_API_KEY" > .env
             echo "GITHUB_REPOSITORY_OWNER=$GH_REPO_OWNER" >> .env
             
-            # Обновляем и запускаем
+            # Обновляем контейнеры
             docker compose pull
             docker compose up -d --remove-orphans
             
-            # Чистим систему от старых слоев
+            # Очищаем место
             docker image prune -f
-
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          GH_ACTOR: ${{ github.actor }}
+          GH_REPO_OWNER: ${{ github.repository_owner }}
